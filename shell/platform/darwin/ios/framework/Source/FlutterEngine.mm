@@ -812,7 +812,7 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
   } else {
     [self setupShell:std::move(shell)
         withObservatoryPublication:settings.enable_observatory_publication
-        withWirelessDebugging:settings.wireless_debugging];
+             withWirelessDebugging:settings.wireless_debugging];
     if ([FlutterEngine isProfilerEnabled]) {
       [self startProfiler];
     }
@@ -1304,8 +1304,7 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
   result->_profiler = _profiler;
   result->_profiler_metrics = _profiler_metrics;
   result->_isGpuDisabled = _isGpuDisabled;
-  [result setupShell:std::move(shell) withObservatoryPublication:NO
-                                           withWirelessDebugging:NO];
+  [result setupShell:std::move(shell) withObservatoryPublication:NO withWirelessDebugging:NO];
   return [result autorelease];
 }
 
