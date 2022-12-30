@@ -10,6 +10,7 @@
 @interface FlutterObservatoryPublisher : NSObject
 
 - (instancetype)initWithEnableObservatoryPublication:(BOOL)enableObservatoryPublication
+                               withWirelessDebugging:(BOOL)isWirelessDebugging
     NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)new NS_UNAVAILABLE;

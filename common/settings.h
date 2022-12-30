@@ -179,6 +179,9 @@ struct Settings {
   // target indicating the URL at which the VM service can be accessed.
   uint32_t observatory_port = 0;
 
+  // Determine whether debugging with a physical network device.
+  bool wireless_debugging = false;
+
   // Determines whether an authentication code is required to communicate with
   // the VM service.
   bool disable_service_auth_codes = true;

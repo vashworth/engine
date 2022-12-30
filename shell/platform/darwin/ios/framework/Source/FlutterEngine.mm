@@ -673,13 +673,15 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
 }
 
 - (void)setupShell:(std::unique_ptr<flutter::Shell>)shell
-    withObservatoryPublication:(BOOL)doesObservatoryPublication {
+    withObservatoryPublication:(BOOL)doesObservatoryPublication
+         withWirelessDebugging:(BOOL)doesWirelessDebugging {
   _shell = std::move(shell);
   [self setupChannels];
   [self onLocaleUpdated:nil];
   [self initializeDisplays];
   _publisher.reset([[FlutterObservatoryPublisher alloc]
-      initWithEnableObservatoryPublication:doesObservatoryPublication]);
+      initWithEnableObservatoryPublication:doesObservatoryPublication
+                     withWirelessDebugging:doesWirelessDebugging]);
   [self maybeSetupPlatformViewChannels];
   _shell->SetGpuAvailability(_isGpuDisabled ? flutter::GpuAvailability::kUnavailable
                                             : flutter::GpuAvailability::kAvailable);
@@ -809,7 +811,8 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
                    << entrypoint.UTF8String;
   } else {
     [self setupShell:std::move(shell)
-        withObservatoryPublication:settings.enable_observatory_publication];
+        withObservatoryPublication:settings.enable_observatory_publication
+        withWirelessDebugging:settings.wireless_debugging];
     if ([FlutterEngine isProfilerEnabled]) {
       [self startProfiler];
     }
@@ -1301,7 +1304,8 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
   result->_profiler = _profiler;
   result->_profiler_metrics = _profiler_metrics;
   result->_isGpuDisabled = _isGpuDisabled;
-  [result setupShell:std::move(shell) withObservatoryPublication:NO];
+  [result setupShell:std::move(shell) withObservatoryPublication:NO
+                                           withWirelessDebugging:NO];
   return [result autorelease];
 }
 

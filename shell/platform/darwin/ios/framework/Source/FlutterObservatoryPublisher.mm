@@ -6,10 +6,14 @@
 
 #import "FlutterObservatoryPublisher.h"
 
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #if FLUTTER_RELEASE
 
 @implementation FlutterObservatoryPublisher
-- (instancetype)initWithEnableObservatoryPublication:(BOOL)enableObservatoryPublication {
+- (instancetype)initWithEnableObservatoryPublication:(BOOL)enableObservatoryPublication
+                               withWirelessDebugging:(BOOL)isWirelessDebugging {
   return [super init];
 }
 @end
@@ -64,13 +68,26 @@
 @end
 
 @implementation ObservatoryDNSServiceDelegate {
-  DNSServiceRef _dnsServiceRef;
+  DNSServiceRef _dnsRegisterServiceRef;
+  DNSServiceRef _dnsResolveServiceRef;
+  BOOL _isWirelessDebugging;
+}
+
+- (instancetype)initWithIsWirelessDebugging:(BOOL)isWirelessDebugging {
+  self = [super init];
+  NSAssert(self, @"Super must not return null on init.");
+  _isWirelessDebugging = isWirelessDebugging;
+  return self;
 }
 
 - (void)stopService {
-  if (_dnsServiceRef) {
-    DNSServiceRefDeallocate(_dnsServiceRef);
-    _dnsServiceRef = NULL;
+  if (_dnsResolveServiceRef) {
+    DNSServiceRefDeallocate(_dnsResolveServiceRef);
+    _dnsResolveServiceRef = NULL;
+  }
+  if (_dnsRegisterServiceRef) {
+    DNSServiceRefDeallocate(_dnsRegisterServiceRef);
+    _dnsRegisterServiceRef = NULL;
   }
 }
 
@@ -88,12 +105,12 @@
   uint16_t port = [[url port] unsignedShortValue];
 
   NSData* txtData = [FlutterObservatoryPublisher createTxtData:url];
-  int err = DNSServiceRegister(&_dnsServiceRef, flags, interfaceIndex,
-                               FlutterObservatoryPublisher.serviceName.UTF8String, registrationType,
-                               domain, NULL, htons(port), txtData.length, txtData.bytes,
-                               RegistrationCallback, NULL);
+  DNSServiceErrorType err = DNSServiceRegister(
+      &_dnsRegisterServiceRef, flags, interfaceIndex,
+      FlutterObservatoryPublisher.serviceName.UTF8String, registrationType, domain, NULL,
+      htons(port), txtData.length, txtData.bytes, RegistrationCallback, (void*)self);
 
-  if (err != 0) {
+  if (err != kDNSServiceErr_NoError) {
     FML_LOG(ERROR) << "Failed to register observatory port with mDNS with error " << err << ".";
     if (@available(iOS 14.0, *)) {
       FML_LOG(ERROR) << "On iOS 14+, local network broadcast in apps need to be declared in "
@@ -108,7 +125,7 @@
                         "project-setup#local-network-privacy-permissions";
     }
   } else {
-    DNSServiceSetDispatchQueue(_dnsServiceRef, dispatch_get_main_queue());
+    DNSServiceSetDispatchQueue(_dnsRegisterServiceRef, dispatch_get_main_queue());
   }
 }
 
@@ -121,6 +138,33 @@ static void DNSSD_API RegistrationCallback(DNSServiceRef sdRef,
                                            void* context) {
   if (errorCode == kDNSServiceErr_NoError) {
     FML_DLOG(INFO) << "FlutterObservatoryPublisher is ready!";
+
+    ObservatoryDNSServiceDelegate* observatoryDelegate = (ObservatoryDNSServiceDelegate*)context;
+
+    // Resolve the service to get the IP (which is needed for iOS wireless debugging).
+    if (observatoryDelegate->_isWirelessDebugging) {
+      DNSServiceErrorType err =
+          DNSServiceResolve(&observatoryDelegate->_dnsResolveServiceRef, flags, 0, name, regType,
+                            domain, ResolveCallback, context);
+      if (err != kDNSServiceErr_NoError) {
+        FML_LOG(ERROR) << "Failed to resolve service with mDNS with error " << err << ".";
+        if (@available(iOS 14.0, *)) {
+          FML_LOG(ERROR) << "On iOS 14+, local network broadcast in apps need to be declared in "
+                         << "the app's Info.plist. Debug and profile Flutter apps and modules host "
+                         << "VM services on the local network to support debugging features such "
+                         << "as hot reload and DevTools. To make your Flutter app or module "
+                         << "attachable and debuggable, add a '" << regType << "' value "
+                         << "to the 'NSBonjourServices' key in your Info.plist for the Debug/"
+                         << "Profile configurations. "
+                         << "For more information, see "
+                         << "https://flutter.dev/docs/development/add-to-app/ios/"
+                            "project-setup#local-network-privacy-permissions";
+        }
+      } else {
+        DNSServiceSetDispatchQueue(observatoryDelegate->_dnsResolveServiceRef,
+                                   dispatch_get_main_queue());
+      }
+    }
   } else if (errorCode == kDNSServiceErr_PolicyDenied) {
     FML_LOG(ERROR)
         << "Could not register as server for FlutterObservatoryPublisher, permission "
@@ -132,6 +176,52 @@ static void DNSSD_API RegistrationCallback(DNSServiceRef sdRef,
   }
 }
 
+static void DNSSD_API ResolveCallback(DNSServiceRef sdRef,
+                                      DNSServiceFlags flags,
+                                      uint32_t interfaceIndex,
+                                      DNSServiceErrorType errorCode,
+                                      const char* fullname,
+                                      const char* hosttarget,
+                                      uint16_t port,
+                                      uint16_t txtLen,
+                                      const unsigned char* txtRecord,
+                                      void* context) {
+  if (errorCode == kDNSServiceErr_NoError) {
+    struct hostent* hostentry = gethostbyname(hosttarget);
+    if (hostentry != nil) {
+      char** addressList = hostentry->h_addr_list;
+      for (char* address = *addressList; address; address = *++addressList) {
+        if (hostentry->h_addrtype == AF_INET) {
+          // Convert IPv4 address from binary to string and log it for the tool to find.
+          struct in_addr* addressBinary = (struct in_addr*)address;
+          char ipAddress[INET_ADDRSTRLEN];
+          inet_ntop(AF_INET, addressBinary, ipAddress, INET_ADDRSTRLEN);
+          if (![[NSString stringWithUTF8String:ipAddress] isEqualToString:@"127.0.0.1"]) {
+            NSLog(@"Resolved IP Address is %s", ipAddress);
+          }
+        } else if (hostentry->h_addrtype == AF_INET6) {
+          // Convert IPv6 address from binary to string and log it for the tool to find.
+          struct in6_addr* addressBinary = (struct in6_addr*)address;
+          char ipAddress[INET6_ADDRSTRLEN];
+          inet_ntop(AF_INET6, addressBinary, ipAddress, INET6_ADDRSTRLEN);
+          if (![[NSString stringWithUTF8String:ipAddress] isEqualToString:@"127.0.0.1"]) {
+            NSLog(@"Resolved IP Address is %s", ipAddress);
+          }
+        }
+      }
+    }
+  } else if (errorCode == kDNSServiceErr_PolicyDenied) {
+    FML_LOG(ERROR)
+        << "Could not resolve the service for FlutterObservatoryPublisher, permission "
+        << "denied. Check your 'Local Network' permissions for this app in the Privacy section of "
+        << "the system Settings.";
+  } else {
+    FML_LOG(ERROR) << "Could not resolve the service for FlutterObservatoryPublisher. Check your "
+                      "network settings and relaunch the application.";
+  }
+  DNSServiceRefDeallocate(sdRef);
+}
+
 @end
 
 @implementation FlutterObservatoryPublisher {
@@ -139,11 +229,13 @@ static void DNSSD_API RegistrationCallback(DNSServiceRef sdRef,
   std::unique_ptr<fml::WeakPtrFactory<FlutterObservatoryPublisher>> _weakFactory;
 }
 
-- (instancetype)initWithEnableObservatoryPublication:(BOOL)enableObservatoryPublication {
+- (instancetype)initWithEnableObservatoryPublication:(BOOL)enableObservatoryPublication
+                               withWirelessDebugging:(BOOL)isWirelessDebugging {
   self = [super init];
   NSAssert(self, @"Super must not return null on init.");
 
-  _delegate.reset([[ObservatoryDNSServiceDelegate alloc] init]);
+  _delegate.reset(
+      [[ObservatoryDNSServiceDelegate alloc] initWithIsWirelessDebugging:isWirelessDebugging]);
   _enableObservatoryPublication = enableObservatoryPublication;
   _weakFactory = std::make_unique<fml::WeakPtrFactory<FlutterObservatoryPublisher>>(self);
 

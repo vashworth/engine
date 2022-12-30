@@ -265,6 +265,9 @@ Settings SettingsFromCommandLine(const fml::CommandLine& command_line) {
     }
   }
 
+  settings.wireless_debugging =
+      command_line.HasOption(FlagForSwitch(Switch::WirelessDebugging));
+
   settings.may_insecurely_connect_to_all_domains = !command_line.HasOption(
       FlagForSwitch(Switch::DisallowInsecureConnections));
 
