@@ -832,8 +832,12 @@ static void SendFakeTouchEvent(UIScreen* screen,
     self.keyboardAnimationView.translatesAutoresizingMaskIntoConstraints = NO;
     [self.keyboardAnimationView.widthAnchor constraintEqualToConstant:0].active = YES;
     [self.keyboardAnimationView.heightAnchor constraintEqualToConstant:0].active = YES;
-    [self.keyboardAnimationView.centerXAnchor constraintEqualToAnchor:self.view.keyboardLayoutGuide.centerXAnchor].active = YES;
-    [self.keyboardAnimationView.bottomAnchor constraintEqualToAnchor:self.view.keyboardLayoutGuide.topAnchor].active = YES;
+    [self.keyboardAnimationView.centerXAnchor
+        constraintEqualToAnchor:self.view.keyboardLayoutGuide.centerXAnchor]
+        .active = YES;
+    [self.keyboardAnimationView.bottomAnchor
+        constraintEqualToAnchor:self.view.keyboardLayoutGuide.topAnchor]
+        .active = YES;
     [self.view setNeedsUpdateConstraints];
     [self.view updateConstraintsIfNeeded];
   }
@@ -1526,9 +1530,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
   [self debugNotification:notification];
 
-
-  // CGFloat keyboardHeight = self.view.frame.size.height - [self keyboardAnimationView].frame.origin.y;
-  // CGFloat scale = [self flutterScreenIfViewLoaded].scale;
+  // CGFloat keyboardHeight = self.view.frame.size.height - [self
+  // keyboardAnimationView].frame.origin.y; CGFloat scale = [self flutterScreenIfViewLoaded].scale;
 
   // // FML_LOG(INFO) << "View Height: " << self.view.frame.size.height; // 852
   // FML_LOG(INFO) << "Animation View Bottom: " << [self keyboardAnimationView].frame.origin.y;
@@ -1540,7 +1543,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
   // NSDictionary* info = notification.userInfo;
   // NSTimeInterval duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue] + 5;
-  // [NSTimer scheduledTimerWithTimeInterval:duration  target:self selector:@selector(killKeyboardAnimation:) userInfo:nil repeats:NO];
+  // [NSTimer scheduledTimerWithTimeInterval:duration  target:self
+  // selector:@selector(killKeyboardAnimation:) userInfo:nil repeats:NO];
 }
 
 - (void)updateTargetViewInsetBottom:(CGFloat)inset {
@@ -1548,17 +1552,22 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 }
 
 - (void)handleKeyboardNotificationWithKeyboardLayoutGuide:(NSNotification*)notification {
-  CGFloat keyboardHeight = self.view.frame.size.height - [self keyboardAnimationView].frame.origin.y;
+  CGFloat keyboardHeight =
+      self.view.frame.size.height - [self keyboardAnimationView].frame.origin.y;
   CGFloat scale = [self flutterScreenIfViewLoaded].scale;
   self.targetViewInsetBottom = keyboardHeight * scale;
   [self startKeyBoardAnimationWithKeyboardLayoutGuide];
 
   NSDictionary* info = notification.userInfo;
   NSTimeInterval duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue] + 5;
-  [NSTimer scheduledTimerWithTimeInterval:duration target:self selector:@selector(killKeyboardAnimation:) userInfo:nil repeats:NO];
+  [NSTimer scheduledTimerWithTimeInterval:duration
+                                   target:self
+                                 selector:@selector(killKeyboardAnimation:)
+                                 userInfo:nil
+                                  repeats:NO];
 }
 
-- (void)killKeyboardAnimation:(NSTimer *)timer {
+- (void)killKeyboardAnimation:(NSTimer*)timer {
   FML_LOG(INFO) << "Try to force quit vsync";
   if (_keyboardAnimationVSyncClient != nil) {
     FML_LOG(INFO) << "quit vsync";
@@ -1578,8 +1587,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 }
 
 - (void)setupKeyboardAnimationVsyncClientWithKeyboardLayoutGuide {
-  auto callback = [weakSelf =
-                       [self getWeakNSObject]](std::unique_ptr<flutter::FrameTimingsRecorder> recorder) {
+  auto callback = [weakSelf = [self getWeakNSObject]](
+                      std::unique_ptr<flutter::FrameTimingsRecorder> recorder) {
     FML_LOG(INFO) << "Animate";
     if (!weakSelf) {
       FML_LOG(INFO) << "No self";
@@ -1615,19 +1624,22 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
       [flutterViewController.get().view addSubview:[flutterViewController keyboardAnimationView]];
     }
     if ([flutterViewController keyboardAnimationView].layer.presentationLayer) {
-
-      CGFloat keyboardCurrentTopAnchor = [flutterViewController keyboardAnimationView].layer.presentationLayer.frame.origin.y;
+      CGFloat keyboardCurrentTopAnchor =
+          [flutterViewController keyboardAnimationView].layer.presentationLayer.frame.origin.y;
       CGFloat viewHeight = [flutterViewController view].frame.size.height;
       CGFloat scale = [flutterViewController flutterScreenIfViewLoaded].scale;
       CGFloat currentKeyboardHeight = (viewHeight - keyboardCurrentTopAnchor) * scale;
 
-      CGFloat keyboardTargetTopAnchor = [flutterViewController keyboardAnimationView].frame.origin.y;
+      CGFloat keyboardTargetTopAnchor =
+          [flutterViewController keyboardAnimationView].frame.origin.y;
 
       CGFloat targetKeyboardHeight = (viewHeight - keyboardTargetTopAnchor) * scale;
 
-      FML_LOG(INFO) << "Target Inset: " << targetKeyboardHeight << "; Current Inset: " <<currentKeyboardHeight;
+      FML_LOG(INFO) << "Target Inset: " << targetKeyboardHeight
+                    << "; Current Inset: " << currentKeyboardHeight;
 
-      flutterViewController.get()->_viewportMetrics.physical_view_inset_bottom = currentKeyboardHeight;
+      flutterViewController.get()->_viewportMetrics.physical_view_inset_bottom =
+          currentKeyboardHeight;
       [flutterViewController updateViewportMetricsIfNeeded];
 
       if ([flutterViewController targetViewInsetBottom] != targetKeyboardHeight) {
@@ -1847,8 +1859,10 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   self.originalViewInsetBottom = _viewportMetrics.physical_view_inset_bottom;
 
   CGRect animationFrame = [self keyboardAnimationView].frame;
-  FML_LOG(INFO) << "Animation Frame Origin: " << animationFrame.origin.x << ", " << animationFrame.origin.y;
-  FML_LOG(INFO) << "Animation Frame Size: " << animationFrame.size.width << ", " << animationFrame.size.height;
+  FML_LOG(INFO) << "Animation Frame Origin: " << animationFrame.origin.x << ", "
+                << animationFrame.origin.y;
+  FML_LOG(INFO) << "Animation Frame Size: " << animationFrame.size.width << ", "
+                << animationFrame.size.height;
 
   // Invalidate old vsync client if old animation is not completed.
   [self invalidateKeyboardAnimationVSyncClient];
@@ -1919,8 +1933,10 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
           // indicates the animation has not been interrupted from its beginning. Moreover,
           // indicates the animation is over and there is no more to execute.
           CGRect animationFrame = [self keyboardAnimationView].frame;
-          FML_LOG(INFO) << "End Animation Frame Origin: " << animationFrame.origin.x << ", " << animationFrame.origin.y;
-          FML_LOG(INFO) << "End Animation Frame Size: " << animationFrame.size.width << ", " << animationFrame.size.height;
+          FML_LOG(INFO) << "End Animation Frame Origin: " << animationFrame.origin.x << ", "
+                        << animationFrame.origin.y;
+          FML_LOG(INFO) << "End Animation Frame Size: " << animationFrame.size.width << ", "
+                        << animationFrame.size.height;
           [self invalidateKeyboardAnimationVSyncClient];
           [self removeKeyboardAnimationView];
           [self ensureViewportMetricsIsCorrect];

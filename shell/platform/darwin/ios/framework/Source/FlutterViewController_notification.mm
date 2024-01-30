@@ -1492,22 +1492,25 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)debugNotification:(NSNotification*)notification {
   FML_LOG(INFO) << notification.name.UTF8String;
-  NSDictionary *userInfo = [notification userInfo];
+  NSDictionary* userInfo = [notification userInfo];
 
   // CGFloat scale = [self flutterScreenIfViewLoaded].scale;
   // FML_LOG(INFO) << "Scale: " << scale; // 3
 
   CGRect beginKeyboardFrame = [userInfo[UIKeyboardFrameBeginUserInfoKey] CGRectValue];
-  FML_LOG(INFO) << "Begin Frame Origin: " << beginKeyboardFrame.origin.x << ", " << beginKeyboardFrame.origin.y;
-  FML_LOG(INFO) << "Begin Frame Size: " << beginKeyboardFrame.size.width << ", " << beginKeyboardFrame.size.height;
+  FML_LOG(INFO) << "Begin Frame Origin: " << beginKeyboardFrame.origin.x << ", "
+                << beginKeyboardFrame.origin.y;
+  FML_LOG(INFO) << "Begin Frame Size: " << beginKeyboardFrame.size.width << ", "
+                << beginKeyboardFrame.size.height;
 
   CGRect endFrame = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
   FML_LOG(INFO) << "End Frame Origin: " << endFrame.origin.x << ", " << endFrame.origin.y;
   FML_LOG(INFO) << "End Frame Size: " << endFrame.size.width << ", " << endFrame.size.height;
 
   // CGRect screenRect = [self flutterScreenIfViewLoaded].bounds;
-  // FML_LOG(INFO) << "Screen Bounds Origin: " << screenRect.origin.x << ", " << screenRect.origin.y; // 0, 0
-  // FML_LOG(INFO) << "Screen Bounds Size: " << screenRect.size.width << ", " << screenRect.size.height; // 393, 852
+  // FML_LOG(INFO) << "Screen Bounds Origin: " << screenRect.origin.x << ", " <<
+  // screenRect.origin.y; // 0, 0 FML_LOG(INFO) << "Screen Bounds Size: " << screenRect.size.width
+  // << ", " << screenRect.size.height; // 393, 852
 
   id isLocal = userInfo[UIKeyboardIsLocalUserInfoKey];
   FML_LOG(INFO) << "Local User: " << [isLocal boolValue];
@@ -1529,7 +1532,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   CGRect keyboardFrame = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue];
   FlutterKeyboardMode keyboardMode = [self calculateKeyboardAttachMode:notification];
   CGFloat calculatedInset = [self calculateKeyboardInsetWithScreen:notification];
-  CGFloat oldcalculatedInset = [self calculateKeyboardInset:keyboardFrame keyboardMode:keyboardMode]; // expected 336
+  CGFloat oldcalculatedInset = [self calculateKeyboardInset:keyboardFrame
+                                               keyboardMode:keyboardMode];  // expected 336
 
   FML_LOG(INFO) << "Old Calculated inset: " << oldcalculatedInset / 3;
 
@@ -1567,13 +1571,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 - (BOOL)shouldIgnoreKeyboardNotification:(NSNotification*)notification {
   if (@available(iOS 16.1, *)) {
     if (notification.object != nil) {
-      UIScreen *screen = (UIScreen *)notification.object;
+      UIScreen* screen = (UIScreen*)notification.object;
       if (![screen isEqual:[self flutterScreenIfViewLoaded]]) {
         FML_LOG(INFO) << "Notification's screen does not below to your view's screen";
       }
     }
   }
-
 
   // Don't ignore UIKeyboardWillHideNotification notifications.
   // Even if the notification is triggered in the background or by a different app/view controller,
@@ -1715,7 +1718,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (CGFloat)calculateKeyboardInsetWithScreen:(NSNotification*)notification {
   // guard let screen = notification.object as? UIScreen else { return }
-  UIScreen *screen = (UIScreen *)notification.object;
+  UIScreen* screen = (UIScreen*)notification.object;
 
   NSDictionary* info = notification.userInfo;
 
@@ -1729,11 +1732,15 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   // UICoordinateSpace* toCoordinateSpace = self.viewIfLoaded;
 
   // // Convert from the screen coordinate space to your local coordinate space
-  // let convertedKeyboardFrameEnd = fromCoordinateSpace.convert(keyboardFrameEnd, to: toCoordinateSpace)
-  CGRect convertedKeyboardFrameEnd = [screen.coordinateSpace convertRect:keyboardFrameEnd toCoordinateSpace:self.viewIfLoaded];
+  // let convertedKeyboardFrameEnd = fromCoordinateSpace.convert(keyboardFrameEnd, to:
+  // toCoordinateSpace)
+  CGRect convertedKeyboardFrameEnd = [screen.coordinateSpace convertRect:keyboardFrameEnd
+                                                       toCoordinateSpace:self.viewIfLoaded];
 
-  FML_LOG(INFO) << "Converted Frame Origin: " << convertedKeyboardFrameEnd.origin.x << ", " << convertedKeyboardFrameEnd.origin.y;
-  FML_LOG(INFO) << "Converted Frame Size: " << convertedKeyboardFrameEnd.size.width << ", " << convertedKeyboardFrameEnd.size.height;
+  FML_LOG(INFO) << "Converted Frame Origin: " << convertedKeyboardFrameEnd.origin.x << ", "
+                << convertedKeyboardFrameEnd.origin.y;
+  FML_LOG(INFO) << "Converted Frame Size: " << convertedKeyboardFrameEnd.size.width << ", "
+                << convertedKeyboardFrameEnd.size.height;
 
   // // Calculate offset for view adjustment
   // var bottomOffset = view.safeAreaInsets.bottom
@@ -1807,8 +1814,10 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   self.originalViewInsetBottom = _viewportMetrics.physical_view_inset_bottom;
 
   CGRect animationFrame = [self keyboardAnimationView].frame;
-  FML_LOG(INFO) << "Animation Frame Origin: " << animationFrame.origin.x << ", " << animationFrame.origin.y;
-  FML_LOG(INFO) << "Animation Frame Size: " << animationFrame.size.width << ", " << animationFrame.size.height;
+  FML_LOG(INFO) << "Animation Frame Origin: " << animationFrame.origin.x << ", "
+                << animationFrame.origin.y;
+  FML_LOG(INFO) << "Animation Frame Size: " << animationFrame.size.width << ", "
+                << animationFrame.size.height;
 
   // Invalidate old vsync client if old animation is not completed.
   [self invalidateKeyboardAnimationVSyncClient];
@@ -1879,8 +1888,10 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
           // indicates the animation has not been interrupted from its beginning. Moreover,
           // indicates the animation is over and there is no more to execute.
           CGRect animationFrame = [self keyboardAnimationView].frame;
-          FML_LOG(INFO) << "End Animation Frame Origin: " << animationFrame.origin.x << ", " << animationFrame.origin.y;
-          FML_LOG(INFO) << "End Animation Frame Size: " << animationFrame.size.width << ", " << animationFrame.size.height;
+          FML_LOG(INFO) << "End Animation Frame Origin: " << animationFrame.origin.x << ", "
+                        << animationFrame.origin.y;
+          FML_LOG(INFO) << "End Animation Frame Size: " << animationFrame.size.width << ", "
+                        << animationFrame.size.height;
           [self invalidateKeyboardAnimationVSyncClient];
           [self removeKeyboardAnimationView];
           [self ensureViewportMetricsIsCorrect];
